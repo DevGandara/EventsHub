@@ -109,6 +109,68 @@ public class EventsControllerTests
         Assert.That(stored, Is.Not.Null);
     }
 
+    [Test]
+    public async Task EditEventAsync_WhenEventExists_ReturnsNoContentAndUpdatesTitleAsync()
+    {
+        // Arrange
+        var owned = await AddOwnedEventAsync("Before edit");
+        var edited = NewEvent(owned.Id, "After edit");
+
+        // Act
+        var result = await _eventsController.EditEventAsync(edited);
+
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<NoContentResult>());
+        var stored = await Db.Events.AsNoTracking().FirstAsync(e => e.Id == owned.Id);
+        Assert.That(stored.Title, Is.EqualTo("After edit"));
+    }
+
+    [Test]
+    public void EditEventAsync_WhenEventDoesntExist_ThrowsEventNotFound()
+    {
+        // Arrange
+        var edited = NewEvent(Guid.NewGuid().ToString(), "Ghost");
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<Exception>(() => _eventsController.EditEventAsync(edited));
+        Assert.That(ex!.Message, Is.EqualTo("Event not found"));
+    }
+
+    [Test]
+    public async Task DeleteEventAsync_WhenEventExists_ReturnsOkAndRemovesEventAsync()
+    {
+        // Arrange
+        var owned = await AddOwnedEventAsync("To delete");
+
+        // Act
+        var result = await _eventsController.DeleteEventAsync(owned.Id);
+
+        // Assert
+        Assert.That(result, Is.InstanceOf<OkResult>());
+        var remaining = await Db.Events.AsNoTracking().AnyAsync(e => e.Id == owned.Id);
+        Assert.That(remaining, Is.False);
+    }
+
+    [Test]
+    public void DeleteEventAsync_WhenEventDoesntExist_ThrowsEventNotFound()
+    {
+        // Arrange
+        var nonExistentId = Guid.NewGuid().ToString();
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<Exception>(() => _eventsController.DeleteEventAsync(nonExistentId));
+        Assert.That(ex!.Message, Is.EqualTo("Event not found"));
+    }
+
+    private async Task<Event> AddOwnedEventAsync(string title)
+    {
+        var @event = NewEvent(title: title);
+        Db.Events.Add(@event);
+        await Db.SaveChangesAsync();
+        _ownedEventIds.Add(@event.Id);
+        return @event;
+    }
+
     private static Event NewEvent(string? id = null, string title = "Test event") => new()
     {
         Id = id ?? Guid.NewGuid().ToString(),
