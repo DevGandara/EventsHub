@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EventsHub.Api\EventsHub.API.csproj" />
+    <ProjectReference Include="..\EventsHub.Api\EventsHub.Api.csproj" />
   </ItemGroup>
 
 </Project>
